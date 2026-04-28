@@ -432,7 +432,7 @@ lead_payload = {
 log_calculation_once(lead_payload)
 
 st.markdown('<div class="section-label">Hinnanguline hind</div>', unsafe_allow_html=True)
-st.markdown('<div class="muted-text">Allpool on iga üleslaetud detaili indikatiivne hinnang ning koondsumma.</div>', unsafe_allow_html=True)
+st.markdown('<div class="muted-text">Allpool on iga üleslaetud detaili indikatiivne hinnang ning koondsumma.Kui detaile on 1 siis lisandub hinnale seadistustasu, kui detile on rohkem, siis seadistamisetasu jagatakse detailide peale</div>', unsafe_allow_html=True)
 
 st.markdown("<div class='row-divider'></div>", unsafe_allow_html=True)
 header_cols = st.columns([3.0, 1.6, 0.9, 0.8, 1.45, 1.45, 1.35])
