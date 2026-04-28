@@ -464,7 +464,11 @@ c1, c2 = st.columns(2)
 with c1:
     st.metric("Kokku ilma KM-ta", euro(total_without_vat))
 with c2:
-    st.metric("Kokku KM-ga 22%", euro(total_with_vat))
+    st.metric("Kokku KM-ga 24%", euro(total_with_vat))
 
 st.caption("Hind on indikatiivne.")
+st.markdown(
+    "<p style='text-align:center; color:#465467; margin-top:24px;'>Lisainfo saamiseks kirjutage: <b>info@ransimetall.ee</b></p>",
+    unsafe_allow_html=True
+)
 st.markdown('</div>', unsafe_allow_html=True)
