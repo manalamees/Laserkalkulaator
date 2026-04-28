@@ -204,7 +204,7 @@ st.title("Laserlõikuse hinnakalkulaator")
 st.markdown(
     """
     <div class="hero-box">
-        <div class="hero-title">Sügisel avame uue täislahendusi pakkuva metallitööstustehase.</div>
+        <div class="hero-title">Sügisel avame uue täislahendusi pakkuva metallitöötlemistehase.</div>
         <div class="hero-text">
             Juba täna saad meie kalkulaatoris laadida üles DXF-failid ning tutvuda indikatiivsete turuhindadega.
             Nii saad oma projekti esmast maksumust paremini planeerida ning tootmise käivitumise ajaks on meie lahendus sulle juba tuttav.
