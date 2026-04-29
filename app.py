@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 import csv
 import hashlib
+import json
 import os
 import re
 import tempfile
+import urllib.request
 import base64
 from datetime import datetime
 from pathlib import Path
@@ -37,7 +39,7 @@ st.markdown(
     <style>
         [data-testid="stAppViewContainer"] {{
             background:
-                linear-gradient(rgba(240, 245, 250, 0.42), rgba(240, 245, 250, 0.58)),
+                linear-gradient(rgba(246, 249, 252, 0.84), rgba(246, 249, 252, 0.90)),
                 url("data:image/png;base64,{BACKGROUND_IMAGE_B64}");
             background-size: cover;
             background-position: center top;
@@ -50,7 +52,7 @@ st.markdown(
             background: transparent;
         }}
         [data-testid="stHeader"] {{
-            background: rgba(246, 249, 252, 0.52);
+            background: rgba(246, 249, 252, 0.72);
             backdrop-filter: blur(8px);
         }}
         .block-container {{
@@ -59,7 +61,7 @@ st.markdown(
             padding-bottom: 2rem;
         }}
         .hero-box, .section-box {{
-            background: rgba(255, 255, 255, 0.80);
+            background: rgba(255, 255, 255, 0.88);
             backdrop-filter: blur(8px);
             border: 1px solid #e8edf3;
             border-radius: 18px;
@@ -91,7 +93,7 @@ st.markdown(
             color: #10233f;
         }}
         .subtle-box {{
-            background: rgba(247, 250, 252, 0.74);
+            background: rgba(247, 250, 252, 0.82);
             border: 1px solid #e8edf3;
             border-radius: 14px;
             padding: 0.9rem 1rem;
@@ -124,6 +126,7 @@ st.markdown(
 VAT_RATE = 0.22
 MAX_SETUP_SPLIT_QTY = 200
 LEADS_FILE = Path("leads.csv")
+GOOGLE_SHEETS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxxAeB5sHXGMefu3j2Z-YI_wh8LkgRjA7NtTqKzDZFMMX_u8F-xJixHh-WtIofqLSs/exec"
 UPLOAD_DIR = Path("lead_uploads")
 
 
@@ -142,7 +145,30 @@ def uploaded_file_key(index: int, uploaded) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+
+def send_lead_to_google_sheets(row: dict) -> bool:
+    """Saadab kalkulaatori kasutuse Google Sheetsi Apps Script webhooki kaudu."""
+    if not GOOGLE_SHEETS_WEBHOOK_URL:
+        return False
+
+    try:
+        payload = json.dumps(row, ensure_ascii=False).encode("utf-8")
+        request = urllib.request.Request(
+            GOOGLE_SHEETS_WEBHOOK_URL,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=10) as response:
+            body = response.read().decode("utf-8", errors="ignore")
+            return response.status == 200 and '"ok"' in body
+    except Exception:
+        return False
+
+
 def append_lead(row: dict) -> None:
+    send_lead_to_google_sheets(row)
+
     fieldnames = [
         "timestamp",
         "event",
@@ -204,7 +230,7 @@ st.title("Laserlõikuse hinnakalkulaator")
 st.markdown(
     """
     <div class="hero-box">
-        <div class="hero-title">Sügisel avame uue täislahendusi pakkuva metallitöötlemistehase.</div>
+        <div class="hero-title">Sügisel avame uue täislahendusi pakkuva metallitööstustehase.</div>
         <div class="hero-text">
             Juba täna saad meie kalkulaatoris laadida üles DXF-failid ning tutvuda indikatiivsete turuhindadega.
             Nii saad oma projekti esmast maksumust paremini planeerida ning tootmise käivitumise ajaks on meie lahendus sulle juba tuttav.
@@ -432,7 +458,7 @@ lead_payload = {
 log_calculation_once(lead_payload)
 
 st.markdown('<div class="section-label">Hinnanguline hind</div>', unsafe_allow_html=True)
-st.markdown('<div class="muted-text">Allpool on iga üleslaetud detaili indikatiivne hinnang ning koondsumma.Kui detaile on 1 siis lisandub hinnale seadistustasu, kui detile on rohkem, siis seadistamisetasu jagatakse detailide peale</div>', unsafe_allow_html=True)
+st.markdown('<div class="muted-text">Allpool on iga üleslaetud detaili indikatiivne hinnang ning koondsumma.</div>', unsafe_allow_html=True)
 
 st.markdown("<div class='row-divider'></div>", unsafe_allow_html=True)
 header_cols = st.columns([3.0, 1.6, 0.9, 0.8, 1.45, 1.45, 1.35])
@@ -464,11 +490,7 @@ c1, c2 = st.columns(2)
 with c1:
     st.metric("Kokku ilma KM-ta", euro(total_without_vat))
 with c2:
-    st.metric("Kokku KM-ga 24%", euro(total_with_vat))
+    st.metric("Kokku KM-ga 22%", euro(total_with_vat))
 
 st.caption("Hind on indikatiivne.")
-st.markdown(
-    "<p style='text-align:center; color:#465467; margin-top:24px;'>Lisainfo saamiseks kirjutage: <b>info@ransimetall.ee</b></p>",
-    unsafe_allow_html=True
-)
 st.markdown('</div>', unsafe_allow_html=True)
