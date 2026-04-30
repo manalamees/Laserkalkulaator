@@ -126,7 +126,7 @@ st.markdown(
 VAT_RATE = 0.22
 MAX_SETUP_SPLIT_QTY = 200
 LEADS_FILE = Path("leads.csv")
-GOOGLE_SHEETS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxxAeB5sHXGMefu3j2Z-YI_wh8LkgRjA7NtTqKzDZFMMX_u8F-xJixHh-WtIofqLSs/exec"
+GOOGLE_SHEETS_WEBHOOK_URL = os.getenv("GOOGLE_SHEETS_WEBHOOK_URL", "https://script.google.com/macros/s/AKfycbxxAeB5sHXGMefu3j2Z-YI_wh8LkgRjA7NtTqKzDZFMMX_u8F-xJixHh-WtIofqLSs/exec")
 UPLOAD_DIR = Path("lead_uploads")
 
 
@@ -246,7 +246,7 @@ st.markdown(
 
 st.markdown('<div class="section-label">Kontaktandmed</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="muted-text">Kalkulaatori kasutamiseks palume sisestada ettevõtte nime ja e-posti aadressi. Kasutame neid andmeid ainult kalkulaatori kasutuse registreerimiseks ning vajadusel ühenduse võtmiseks.</div>',
+    '<div class="muted-text">Kalkulaatori kasutamiseks palume sisestada ettevõtte nimi ja e-posti aadress. Kasutame neid andmeid ainult kalkulaatori kasutuse registreerimiseks ning vajadusel ühenduse võtmiseks.</div>',
     unsafe_allow_html=True,
 )
 
@@ -488,4 +488,10 @@ with c2:
     st.metric("Kokku KM-ga 22%", euro(total_with_vat))
 
 st.caption("Hind on indikatiivne.")
+
+st.markdown(
+    "<p style='text-align:center; color:#465467; margin-top:24px;'>Lisainfo saamiseks kirjutage: <b>info@ransimetall.ee</b></p>",
+    unsafe_allow_html=True
+)
+
 st.markdown('</div>', unsafe_allow_html=True)
