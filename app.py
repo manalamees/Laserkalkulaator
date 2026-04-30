@@ -230,17 +230,13 @@ st.title("Laserlõikuse hinnakalkulaator")
 st.markdown(
     """
     <div class="hero-box">
-        <div class="hero-title">Sügisel avame uue täislahendusi pakkuva metallitööstustehase.</div>
+        <div class="hero-title">Tahad hinnapakkumist teha aga pole laserilõikuse hindu- see on lahendus.</div>
         <div class="hero-text">
-            Juba täna saad meie kalkulaatoris laadida üles DXF-failid ning tutvuda indikatiivsete turuhindadega.
-            Nii saad oma projekti esmast maksumust paremini planeerida ning tootmise käivitumise ajaks on meie lahendus sulle juba tuttav.
+            Juba täna saad meie kalkulaatoris laadida üles DXF-failid ning tutvuda indikatiivsete turuhindadega.Tuleb arvestada sellega et eelkõige sõltub hind laseri võimekusest. Selle kalkulaatori põhjaks on 12KW laser.
+            Nii saad oma projekti esmast maksumust paremini planeerida.
         </div>
-        <div class="subtle-box">
-            <div class="muted-text"><b>Planeeritavad põhiteenused:</b></div>
-            <ul class="service-list">
-                <li><b>12 kW laserlõikus</b> – kiire ja täpne lõikus erinevatele materjalidele.</li>
-                <li><b>Painutamine ja valtsimine</b> – detailidele sobivate vormide valmistamiseks.</li>
-                <li><b>Keevitustööd</b> – kvaliteetsed koosted ja terviklahendused.</li>
+   
+       
             </ul>
         </div>
         <div class="mini-note">Kalkulaatoris kuvatud hind on indikatiivne ning lõplik hind sõltub faili tehnilisest ülevaatusest.</div>
