@@ -77,10 +77,35 @@ st.markdown(
             background: rgba(246, 249, 252, 0.72);
             backdrop-filter: blur(8px);
         }}
-        .block-container {{
-            max-width: 1180px;
-            padding-top: 2rem;
-            padding-bottom: 2rem;
+       .block-container {
+    max-width: 980px;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+h1 {
+    text-align: center;
+}
+
+.hero-box {
+    text-align: center;
+}
+
+.logo-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0.2rem 0 1.15rem 0;
+}
+
+.logo-wrap img {
+    max-width: 360px;
+    width: min(100%, 360px);
+    height: auto;
+    display: block;
+}
         }}
         .logo-wrap {{
             display: flex;
