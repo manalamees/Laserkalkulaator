@@ -34,6 +34,28 @@ def get_background_image_base64() -> str:
 
 BACKGROUND_IMAGE_B64 = get_background_image_base64()
 
+def image_file_to_base64(path: Path) -> str:
+    try:
+        return base64.b64encode(path.read_bytes()).decode("utf-8")
+    except Exception:
+        return ""
+
+
+def find_logo_path() -> Path | None:
+    assets_dir = Path(__file__).parent / "assets"
+    candidates = [
+        assets_dir / "ransi_metall_logo.png",
+        assets_dir / "ransi-metall-logo.png",
+        assets_dir / "logo.png",
+        assets_dir / "ransi_metall_logo.jpg",
+        assets_dir / "ransi-metall-logo.jpg",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
 st.markdown(
     f"""
     <style>
@@ -59,6 +81,18 @@ st.markdown(
             max-width: 1180px;
             padding-top: 2rem;
             padding-bottom: 2rem;
+        }}
+        .logo-wrap {{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0.2rem 0 1.15rem 0;
+        }}
+        .logo-wrap img {{
+            max-width: 360px;
+            width: min(100%, 360px);
+            height: auto;
+            display: block;
         }}
         .hero-box, .section-box {{
             background: rgba(255, 255, 255, 0.88);
@@ -224,6 +258,20 @@ def log_calculation_once(payload: dict) -> None:
         append_lead(payload)
         st.session_state["last_logged_calc"] = key
 
+
+logo_path = find_logo_path()
+if logo_path is not None:
+    logo_b64 = image_file_to_base64(logo_path)
+    if logo_b64:
+        logo_mime = "image/png" if logo_path.suffix.lower() == ".png" else "image/jpeg"
+        st.markdown(
+            f"""
+            <div class="logo-wrap">
+                <img src="data:{logo_mime};base64,{logo_b64}" alt="Ransi Metall logo">
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 st.title("Laserlõikuse hinnakalkulaator")
 
