@@ -338,9 +338,21 @@ st.markdown('<div class="muted-text">Laadi üles DXF-fail(id), vali materjal ja 
 
 uploaded_files = st.file_uploader(
     "Lae DXF fail(id) üles",
-    type=["dxf"],
     accept_multiple_files=True,
+    help="Mobiilis võib DXF-faili valimine olla lihtsam, kui fail on eelnevalt telefoni failidesse salvestatud.",
 )
+
+if uploaded_files:
+    wrong_files = [
+        uploaded.name for uploaded in uploaded_files
+        if not uploaded.name.lower().endswith(".dxf")
+    ]
+    if wrong_files:
+        st.error("Palun lae üles ainult DXF-failid.")
+        for file_name in wrong_files:
+            st.write(f"- {file_name}")
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.stop()
 
 if "deleted_upload_keys" not in st.session_state:
     st.session_state["deleted_upload_keys"] = set()
