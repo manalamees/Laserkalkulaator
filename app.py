@@ -284,6 +284,44 @@ def render_dxf_preview_base64(file_bytes: bytes, file_name: str) -> str:
         ctx = RenderContext(doc)
         out = MatplotlibBackend(ax)
         Frontend(ctx, out).draw_layout(msp, finalize=True)
+
+        # Muudame DXF eelvaate jooned tumedaks, et need oleksid valgel taustal hästi nähtavad.
+        preview_line_color = "#1f2937"
+        for line in ax.lines:
+            try:
+                line.set_color(preview_line_color)
+                line.set_linewidth(1.4)
+            except Exception:
+                pass
+
+        for collection in ax.collections:
+            try:
+                collection.set_color(preview_line_color)
+            except Exception:
+                pass
+            try:
+                collection.set_edgecolor(preview_line_color)
+            except Exception:
+                pass
+            try:
+                collection.set_linewidth(1.4)
+            except Exception:
+                pass
+
+        for patch in ax.patches:
+            try:
+                patch.set_edgecolor(preview_line_color)
+                patch.set_facecolor("none")
+                patch.set_linewidth(1.4)
+            except Exception:
+                pass
+
+        for txt in ax.texts:
+            try:
+                txt.set_color(preview_line_color)
+            except Exception:
+                pass
+
         ax.autoscale()
         ax.margins(0.08)
         ax.set_aspect("equal")
