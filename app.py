@@ -516,6 +516,16 @@ uploaded_files = st.file_uploader(
     help="Lae üles ainult .dxf failid. Mobiilis salvesta fail enne telefoni Files/Failid kausta.",
 )
 
+# Salvesta üleslaetud failide sisu session_state'i, et rerun ei kaotaks neid.
+if "uploaded_file_bytes" not in st.session_state:
+    st.session_state["uploaded_file_bytes"] = {}
+
+if uploaded_files:
+    for idx, uploaded in enumerate(uploaded_files):
+        file_key = uploaded_file_key(idx, uploaded)
+        if file_key not in st.session_state["uploaded_file_bytes"]:
+            st.session_state["uploaded_file_bytes"][file_key] = uploaded.getvalue()
+
 if uploaded_files:
     wrong_files = [uploaded.name for uploaded in uploaded_files if not uploaded.name.lower().endswith(".dxf")]
     if wrong_files:
@@ -583,16 +593,22 @@ errors = []
 
 for original_index, file_key, uploaded in active_uploaded_files:
     suffix = os.path.splitext(uploaded.name)[1] or ".dxf"
+    file_bytes = st.session_state.get("uploaded_file_bytes", {}).get(file_key)
+
+    if file_bytes is None:
+        file_bytes = uploaded.getvalue()
+        st.session_state.setdefault("uploaded_file_bytes", {})[file_key] = file_bytes
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(uploaded.getbuffer())
+        tmp.write(file_bytes)
         tmp_path = tmp.name
 
     try:
         metrics = analyze_dxf(tmp_path)
-        preview_b64 = render_dxf_preview_base64(uploaded.getvalue(), uploaded.name)
+        preview_b64 = render_dxf_preview_base64(file_bytes, uploaded.name)
         prepared.append((uploaded.name, metrics, file_key, preview_b64))
-    except Exception:
-        errors.append(uploaded.name)
+    except Exception as exc:
+        errors.append((uploaded.name, str(exc)))
     finally:
         try:
             os.remove(tmp_path)
@@ -601,8 +617,14 @@ for original_index, file_key, uploaded in active_uploaded_files:
 
 if errors:
     st.error("Mõnda DXF-faili ei õnnestunud töödelda. Palun kontrolli faili või saada see meile ülevaatamiseks.")
-    for file_name in errors:
-        st.write(f"- {file_name}")
+    for item in errors:
+        if isinstance(item, tuple):
+            file_name, reason = item
+            st.write(f"- {file_name}")
+            if reason:
+                st.caption(f"Põhjus: {reason[:220]}")
+        else:
+            st.write(f"- {item}")
 
 if prepared:
     st.markdown("**Üleslaetud detailid**")
@@ -642,6 +664,7 @@ for i, (file_name, metrics, file_key, preview_b64) in enumerate(prepared):
         st.write("")
         if st.button("Kustuta", key=f"delete_precalc_{i}_{file_key}"):
             st.session_state["deleted_upload_keys"].add(file_key)
+            st.session_state.get("uploaded_file_bytes", {}).pop(file_key, None)
             st.rerun()
 
     st.markdown('</div></div>', unsafe_allow_html=True)
