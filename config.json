@@ -196,7 +196,7 @@
     "welding_extra": 10.0
   },
   "defaults": {
-    "margin": 0.6,
+    "margin": 0.3,
     "default_material_key": "RST"
   }
 }
