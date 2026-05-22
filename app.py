@@ -589,32 +589,8 @@ if not materials:
 
 material_keys = list(materials.keys())
 material_labels = [materials[k] for k in material_keys]
-
-col1, col2 = st.columns(2)
-
-with col1:
-    default_material_key = str(DEFAULTS.get("default_material_key", "RST") or "RST")
-    default_index = material_keys.index(default_material_key) if default_material_key in material_keys else 0
-    selected_label = st.selectbox(
-        "Materjal",
-        options=material_labels,
-        index=default_index,
-        key="selected_material_label",
-    )
-    material_key = material_keys[material_labels.index(selected_label)]
-
-with col2:
-    thicknesses = available_thicknesses(material_key)
-    if not thicknesses:
-        st.error(f"Materjalil '{selected_label}' puudub hinnastamiseks vajalik paksuse info.")
-        st.stop()
-    thickness_mm = st.selectbox(
-        "Paksus",
-        options=thicknesses,
-        index=0,
-        format_func=lambda x: f"{float(x):g} mm",
-        key=f"thickness_for_{material_key}",
-    )
+default_material_key = str(DEFAULTS.get("default_material_key", "RST") or "RST")
+default_material_index = material_keys.index(default_material_key) if default_material_key in material_keys else 0
 
 if not active_uploaded_files and not cached_meta:
     st.info("Lisa vähemalt üks DXF-fail, et indikatiivne hind kuvada.")
@@ -666,11 +642,23 @@ if errors:
 
 if prepared:
     st.markdown("**Üleslaetud detailid**")
-    st.caption("Iga faili juures kuvatakse eelvaade, mõõdud ja kogus. Vajadusel saad faili loendist eemaldada.")
+    st.caption("Igal kaardil saad muuta materjali, paksust ja kogust.")
 
+# Read per-file settings from session_state
 quantity_by_key = {}
+material_key_by_file = {}
+thickness_by_file = {}
 for i, (file_name, metrics, file_key, preview_b64) in enumerate(prepared):
     quantity_by_key[file_key] = int(st.session_state.get(f"qty_{file_key}", 1))
+    mk = st.session_state.get(f"mat_{file_key}", default_material_key)
+    if mk not in material_keys:
+        mk = default_material_key
+    material_key_by_file[file_key] = mk
+    avail_th = available_thicknesses(mk)
+    saved_th = st.session_state.get(f"th_{file_key}", avail_th[0] if avail_th else None)
+    if saved_th not in avail_th:
+        saved_th = avail_th[0] if avail_th else saved_th
+    thickness_by_file[file_key] = saved_th
 
 rows = []
 margin = float(DEFAULTS.get("margin", 0.6) or 0.6)
@@ -692,9 +680,11 @@ if include_setup and share_setup and prepared:
 
 for file_name, metrics, file_key, preview_b64 in prepared:
     try:
+        fk_mat = material_key_by_file.get(file_key, default_material_key)
+        fk_th = thickness_by_file.get(file_key, 1.0)
         data = PriceInput(
-            material_key=material_key,
-            thickness_mm=float(thickness_mm),
+            material_key=fk_mat,
+            thickness_mm=float(fk_th),
             quantity=int(quantity_by_key.get(file_key, 1)),
             margin=margin,
             include_laser_setup=include_setup,
@@ -708,6 +698,8 @@ for file_name, metrics, file_key, preview_b64 in prepared:
         bd = calculate_price(file_name, metrics, data)
         row = bd.to_dict()
         row["_upload_key"] = file_key
+        row["_mat_label"] = materials.get(fk_mat, fk_mat)
+        row["_thickness_mm"] = float(fk_th)
         rows.append(row)
     except Exception:
         errors.append(file_name)
@@ -728,8 +720,8 @@ lead_payload = {
     "contact_name": contact_name.strip(),
     "email": email.strip(),
     "phone": phone.strip(),
-    "material": selected_label,
-    "thickness_mm": float(thickness_mm),
+    "material": "; ".join(set(row.get("_mat_label","") for row in rows)),
+    "thickness_mm": "; ".join(set(str(row.get("_thickness_mm","")) for row in rows)),
     "quantity": "; ".join([f"{name}: {quantity_by_key.get(key, 1)}" for name, _, key, _ in prepared]),
     "files": file_names,
     "total_without_vat": round(total_without_vat, 2),
@@ -741,7 +733,7 @@ lead_payload = {
 log_calculation_once(lead_payload)
 
 st.markdown('<div class="section-label">Hinnanguline hind</div>', unsafe_allow_html=True)
-st.markdown('<div class="muted-text">Muuda kogust igal kaardil. Hind uueneb automaatselt.</div>', unsafe_allow_html=True)
+st.markdown('<div class="muted-text">Muuda materjali, paksust ja kogust igal kaardil. Hind uueneb automaatselt.</div>', unsafe_allow_html=True)
 
 rows_by_key = {row.get("_upload_key"): row for row in rows}
 
@@ -753,9 +745,12 @@ for i, (file_name, metrics, file_key, preview_b64) in enumerate(prepared):
     width_mm, height_mm = extract_dimensions_mm(metrics)
     subtotal_without_vat = float(row["subtotal"])
     total_with_vat_row = subtotal_without_vat * (1 + VAT_RATE)
+    card_mat_label = row.get("_mat_label", "")
+    card_thickness = row.get("_thickness_mm", 1.0)
+    cur_mat_key = material_key_by_file.get(file_key, default_material_key)
 
     st.markdown('<div class="price-card">', unsafe_allow_html=True)
-    cols = st.columns([1.15, 2.4, 0.75, 0.6])
+    cols = st.columns([1.15, 2.4, 0.6])
 
     with cols[0]:
         st.markdown('<div class="price-card-top">', unsafe_allow_html=True)
@@ -768,12 +763,41 @@ for i, (file_name, metrics, file_key, preview_b64) in enumerate(prepared):
     with cols[1]:
         st.markdown('<div class="price-card-body">', unsafe_allow_html=True)
         st.markdown(f'<div class="file-title">{row["file_name"]}</div>', unsafe_allow_html=True)
-        meta_lines = []
         if width_mm is not None and height_mm is not None:
-            meta_lines.append(f'<div class="meta-item"><strong>Mõõdud:</strong> {width_mm:.1f} × {height_mm:.1f} mm</div>')
-        meta_lines.append(f'<div class="meta-item"><strong>Materjal:</strong> {selected_label}</div>')
-        meta_lines.append(f'<div class="meta-item"><strong>Paksus:</strong> {float(thickness_mm):g} mm</div>')
-        st.markdown('<div class="meta-grid">' + ''.join(meta_lines) + '</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="meta-item"><strong>Mõõdud:</strong> {width_mm:.1f} × {height_mm:.1f} mm</div>', unsafe_allow_html=True)
+
+        # Per-card material + thickness selectors
+        sel_cols = st.columns(2)
+        with sel_cols[0]:
+            new_mat_label = st.selectbox(
+                "Materjal",
+                options=material_labels,
+                index=material_keys.index(cur_mat_key) if cur_mat_key in material_keys else default_material_index,
+                key=f"mat_label_{file_key}",
+                label_visibility="visible",
+            )
+            new_mat_key = material_keys[material_labels.index(new_mat_label)]
+            if new_mat_key != st.session_state.get(f"mat_{file_key}"):
+                st.session_state[f"mat_{file_key}"] = new_mat_key
+                st.session_state.pop(f"th_{file_key}", None)
+                st.rerun()
+
+        with sel_cols[1]:
+            avail_th = available_thicknesses(new_mat_key)
+            saved_th = st.session_state.get(f"th_{file_key}", avail_th[0] if avail_th else None)
+            th_index = avail_th.index(saved_th) if saved_th in avail_th else 0
+            new_th = st.selectbox(
+                "Paksus",
+                options=avail_th,
+                index=th_index,
+                format_func=lambda x: f"{float(x):g} mm",
+                key=f"th_sel_{file_key}",
+                label_visibility="visible",
+            )
+            if new_th != st.session_state.get(f"th_{file_key}"):
+                st.session_state[f"th_{file_key}"] = new_th
+                st.rerun()
+
         st.markdown(
             f"""
             <div class="price-row">
@@ -796,7 +820,7 @@ for i, (file_name, metrics, file_key, preview_b64) in enumerate(prepared):
         st.markdown('</div>', unsafe_allow_html=True)
 
     with cols[2]:
-        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:0.4rem'></div>", unsafe_allow_html=True)
         new_qty = st.number_input(
             "Kogus",
             min_value=1,
@@ -806,9 +830,7 @@ for i, (file_name, metrics, file_key, preview_b64) in enumerate(prepared):
         )
         if new_qty != quantity_by_key.get(file_key, 1):
             st.rerun()
-
-    with cols[3]:
-        st.markdown("<div style='height:1.8rem'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:0.4rem'></div>", unsafe_allow_html=True)
         if st.button("🗑️", key=f"delete_{i}_{file_key}", help="Eemalda detail"):
             st.session_state["deleted_upload_keys"].add(file_key)
             st.session_state.get("uploaded_file_bytes", {}).pop(file_key, None)
