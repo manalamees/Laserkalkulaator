@@ -670,42 +670,7 @@ if prepared:
 
 quantity_by_key = {}
 for i, (file_name, metrics, file_key, preview_b64) in enumerate(prepared):
-    width_mm, height_mm = extract_dimensions_mm(metrics)
-    st.markdown('<div class="price-card"><div class="price-card-top">', unsafe_allow_html=True)
-    cols = st.columns([1.15, 2.2, 0.95, 0.8])
-
-    with cols[0]:
-        if preview_b64:
-            st.markdown(f'<img class="preview-image" src="data:image/png;base64,{preview_b64}" alt="DXF eelvaade">', unsafe_allow_html=True)
-        else:
-            st.info("Eelvaade puudub")
-
-    with cols[1]:
-        st.markdown(f'<div class="file-title">{file_name}</div>', unsafe_allow_html=True)
-        meta_lines = []
-        if width_mm is not None and height_mm is not None:
-            meta_lines.append(f'<div class="meta-item"><strong>Mõõdud:</strong> {width_mm:.1f} × {height_mm:.1f} mm</div>')
-        meta_lines.append(f'<div class="meta-item"><strong>Materjal:</strong> {selected_label}</div>')
-        meta_lines.append(f'<div class="meta-item"><strong>Paksus:</strong> {float(thickness_mm):g} mm</div>')
-        st.markdown('<div class="meta-grid">' + ''.join(meta_lines) + '</div>', unsafe_allow_html=True)
-
-    with cols[2]:
-        quantity_by_key[file_key] = int(st.number_input(
-            "Kogus",
-            min_value=1,
-            value=int(st.session_state.get(f"qty_{file_key}", 1)),
-            step=1,
-            key=f"qty_{file_key}",
-        ))
-
-    with cols[3]:
-        st.write("")
-        if st.button("Kustuta", key=f"delete_precalc_{i}_{file_key}"):
-            st.session_state["deleted_upload_keys"].add(file_key)
-            st.session_state.get("uploaded_file_bytes", {}).pop(file_key, None)
-            st.rerun()
-
-    st.markdown('</div></div>', unsafe_allow_html=True)
+    quantity_by_key[file_key] = int(st.session_state.get(f"qty_{file_key}", 1))
 
 rows = []
 margin = float(DEFAULTS.get("margin", 0.6) or 0.6)
@@ -776,11 +741,11 @@ lead_payload = {
 log_calculation_once(lead_payload)
 
 st.markdown('<div class="section-label">Hinnanguline hind</div>', unsafe_allow_html=True)
-st.markdown('<div class="muted-text">Allpool on iga üleslaetud detaili indikatiivne hinnang ning koondsumma.</div>', unsafe_allow_html=True)
+st.markdown('<div class="muted-text">Muuda kogust igal kaardil. Hind uueneb automaatselt.</div>', unsafe_allow_html=True)
 
 rows_by_key = {row.get("_upload_key"): row for row in rows}
 
-for file_name, metrics, file_key, preview_b64 in prepared:
+for i, (file_name, metrics, file_key, preview_b64) in enumerate(prepared):
     row = rows_by_key.get(file_key)
     if not row:
         continue
@@ -790,7 +755,8 @@ for file_name, metrics, file_key, preview_b64 in prepared:
     total_with_vat_row = subtotal_without_vat * (1 + VAT_RATE)
 
     st.markdown('<div class="price-card">', unsafe_allow_html=True)
-    cols = st.columns([1.15, 2.4])
+    cols = st.columns([1.15, 2.4, 0.75, 0.6])
+
     with cols[0]:
         st.markdown('<div class="price-card-top">', unsafe_allow_html=True)
         if preview_b64:
@@ -807,7 +773,6 @@ for file_name, metrics, file_key, preview_b64 in prepared:
             meta_lines.append(f'<div class="meta-item"><strong>Mõõdud:</strong> {width_mm:.1f} × {height_mm:.1f} mm</div>')
         meta_lines.append(f'<div class="meta-item"><strong>Materjal:</strong> {selected_label}</div>')
         meta_lines.append(f'<div class="meta-item"><strong>Paksus:</strong> {float(thickness_mm):g} mm</div>')
-        meta_lines.append(f'<div class="meta-item"><strong>Kogus:</strong> {int(row.get("quantity", 1))} tk</div>')
         st.markdown('<div class="meta-grid">' + ''.join(meta_lines) + '</div>', unsafe_allow_html=True)
         st.markdown(
             f"""
@@ -829,6 +794,26 @@ for file_name, metrics, file_key, preview_b64 in prepared:
             unsafe_allow_html=True,
         )
         st.markdown('</div>', unsafe_allow_html=True)
+
+    with cols[2]:
+        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+        new_qty = st.number_input(
+            "Kogus",
+            min_value=1,
+            value=int(st.session_state.get(f"qty_{file_key}", 1)),
+            step=1,
+            key=f"qty_{file_key}",
+        )
+        if new_qty != quantity_by_key.get(file_key, 1):
+            st.rerun()
+
+    with cols[3]:
+        st.markdown("<div style='height:1.8rem'></div>", unsafe_allow_html=True)
+        if st.button("🗑️", key=f"delete_{i}_{file_key}", help="Eemalda detail"):
+            st.session_state["deleted_upload_keys"].add(file_key)
+            st.session_state.get("uploaded_file_bytes", {}).pop(file_key, None)
+            st.rerun()
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown('<div class="summary-box">', unsafe_allow_html=True)
